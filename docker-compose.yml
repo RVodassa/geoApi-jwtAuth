@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  hugo-server:
+    image: klakegg/hugo:0.101.0-ext-alpine
+    container_name: hugo
+    command: server
+    volumes:
+      - "./hugo:/src"  # Убедитесь, что папка "hugo" содержит ваш сайт
+    ports:
+      - "1313:1313"  # Пробрасываем порт для доступа к Hugo-серверу снаружи
+    networks:
+      - mylocal
+
+  proxy-server:
+    build: ./proxy  # Путь к папке с вашим прокси-приложением
+    container_name: proxy
+    volumes:
+      - "./hugo/content:/app/static"  # Связываем статический контент Hugo с прокси
+    ports:
+      - "8080:8080"  # Пробрасываем порт для прокси-сервера
+    networks:
+      - mylocal
+    env_file:
+      - ./proxy/.env  # Подключаем файл с переменными окружения
+
+networks:
+  mylocal:
+    driver: bridge  # Создание пользовательской сети для общения контейнеров

@@ -1,0 +1,116 @@
+swagger: "2.0"
+info:
+  title: "Geo-service"
+  description: "API для получения информации об адресе"
+  version: "1.0.0"
+host: "localhost:8080" 
+basePath: "/api" 
+schemes:
+  - "http" 
+
+paths:
+  /address/geocode:
+    post:
+      summary: "Геокодирование"
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/GeocodeRequest"
+      responses:
+        200:
+          description: "Успешный ответ"
+          schema:
+            $ref: "#/definitions/GeocodeResponse"
+        400:
+          description: "Неверный запрос"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+  /address/search:
+    post:
+      summary: "Поиск адресов"
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/SearchRequest"
+      responses:
+        200:
+          description: "Успешный ответ"
+          schema:
+            $ref: "#/definitions/SearchResponse"
+        400:
+          description: "Неверный запрос"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+definitions:
+  GeocodeRequest:
+    type: "object"
+    properties:
+      lat:
+        type: "string"
+        example: "60.0619836"
+      lng:
+        type: "string"
+        example: "30.3121723"
+
+  SearchRequest:
+    type: "object"
+    properties:
+      query:
+        type: "string"
+        example: "спб просвещения 31/1"
+
+  GeocodeResponse:
+    type: "object"
+    properties:
+      suggestions:
+        type: "array"
+        items:
+          $ref: "#/definitions/Address"
+
+  SearchResponse:
+    type: "object"
+    properties:
+      addresses:
+        type: "array"
+        items:
+          $ref: "#/definitions/Address"
+
+  Address:
+    type: "object"
+    properties:
+      value:
+        type: "string"
+      unrestricted_value:
+        type: "string"
+      postal_code:
+        type: "string"
+      country:
+        type: "string"
+      country_iso_code:
+        type: "string"
+      region_fias_id:
+        type: "string"
+      region:
+        type: "string"
+      city:
+        type: "string"
+      street:
+        type: "string"
+      house:
+        type: "string"
+      geo_lat:
+        type: "string"
+      geo_lon:
+        type: "string"
+
+  ErrorResponse:
+    type: "object"
+    properties:
+      message:
+        type: "string"
