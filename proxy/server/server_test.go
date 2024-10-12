@@ -9,7 +9,9 @@ import (
 
 	"testing"
 
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Тест для маршрута /test
@@ -121,4 +123,115 @@ func TestHandleGeocode(t *testing.T) {
 	// err = json.Unmarshal(rr.Body.Bytes(), &response)
 	// assert.NoError(t, err)
 
+}
+
+func TestRegisterHandler(t *testing.T) {
+	// Очищаем базу данных перед тестом
+	usersDB = map[string]string{}
+
+	// Создаем данные для запроса
+	reqBody := map[string]string{
+		"email":    "test@example.com",
+		"password": "password123",
+	}
+	body, _ := json.Marshal(reqBody)
+
+	// Создаем HTTP-запрос
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Создаем ResponseRecorder для записи ответа
+	w := httptest.NewRecorder()
+
+	// Вызываем обработчик
+	registerHandler(w, req)
+
+	// Проверяем код статуса
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Проверяем тело ответа как JSON
+	var resp map[string]string
+	err := json.NewDecoder(w.Body).Decode(&resp)
+	if err != nil {
+		t.Errorf("failed to decode response: %v", err)
+	}
+	expected := map[string]string{"message": "User registered successfully"}
+	if resp["message"] != expected["message"] {
+		t.Errorf("handler returned unexpected body: got %v want %v", resp["message"], expected["message"])
+	}
+
+	// Проверяем, был ли добавлен пользователь в базу данных
+	if _, exists := usersDB["test@example.com"]; !exists {
+		t.Errorf("user was not added to the database")
+	}
+}
+
+func TestLoginHandler(t *testing.T) {
+	// Очищаем базу данных и добавляем тестового пользователя
+	usersDB = map[string]string{}
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	usersDB["test@example.com"] = string(hashedPassword)
+
+	// Создаем данные для запроса
+	reqBody := map[string]string{
+		"email":    "test@example.com",
+		"password": "password123",
+	}
+	body, _ := json.Marshal(reqBody)
+
+	// Создаем HTTP-запрос
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Создаем ResponseRecorder для записи ответа
+	w := httptest.NewRecorder()
+
+	// Вызываем обработчик
+	loginHandler(w, req)
+
+	// Проверяем код статуса
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Проверяем, что токен был сгенерирован
+	var resp map[string]string
+	err := json.NewDecoder(w.Body).Decode(&resp)
+	if err != nil || resp["token"] == "" {
+		t.Errorf("expected a token but got: %v", w.Body.String())
+	}
+}
+
+func TestProtectedHandler(t *testing.T) {
+	// Создаем токен для тестового пользователя
+	tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
+	claims := map[string]interface{}{
+		"user_id": "test@example.com",
+		"exp":     time.Now().Add(time.Hour * 1).Unix(),
+	}
+	_, tokenString, _ := tokenAuth.Encode(claims)
+
+	// Создаем HTTP-запрос с токеном в заголовке
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	// Создаем ResponseRecorder для записи ответа
+	w := httptest.NewRecorder()
+
+	// Применяем JWT-аутентификацию через миддлвар
+	jwtMiddleware := jwtauth.Verifier(tokenAuth)
+	jwtMiddleware(http.HandlerFunc(protectedHandler)).ServeHTTP(w, req)
+
+	// Проверяем код статуса
+	if status := w.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Проверяем тело ответа
+	expected := `Защищённый контент для пользователя: test@example.com`
+	if w.Body.String() != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", w.Body.String(), expected)
+	}
 }

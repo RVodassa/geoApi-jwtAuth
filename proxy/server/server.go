@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/jwtauth/v5"
 )
 
 // Структура данных сервера
@@ -35,6 +36,7 @@ func HandleTest(w http.ResponseWriter, r *http.Request) {
 
 // Start запускает сервер
 func (s *Server) Start() error {
+	tokenAuth = jwtauth.New("HS256", []byte("my_secret_key"), nil)
 	// Инициализация роутера chi
 	r := chi.NewRouter()
 
@@ -47,6 +49,18 @@ func (s *Server) Start() error {
 	}))
 
 	r.Use(middleware.Logger) // Логирование каждого запроса
+
+	// Роуты для регистрации и авторизации
+	r.Post("/api/register", registerHandler)
+	r.Post("/api/login", loginHandler)
+
+	// Защищённые маршруты
+	r.Group(func(r chi.Router) {
+		r.Use(jwtauth.Verifier(tokenAuth))
+		// Передаём tokenAuth в Authenticator
+		r.Use(jwtauth.Authenticator(tokenAuth))
+		r.Get("/api/protected", protectedHandler)
+	})
 
 	r.Get("/test", HandleTest)
 	r.Post("/api/address/geocode", HandleGeocode)
