@@ -9,7 +9,6 @@ import (
 
 	"testing"
 
-	"github.com/go-chi/jwtauth/v5"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -90,7 +89,7 @@ func TestHandleSearch(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	// Проверка ответа
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 	// var response []Address
 	// err = json.Unmarshal(rr.Body.Bytes(), &response)
@@ -112,7 +111,7 @@ func TestHandleGeocode(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	// Проверка ответа
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 	// Логирование тела ответа для диагностики
 	body := rr.Body.String()
@@ -201,37 +200,5 @@ func TestLoginHandler(t *testing.T) {
 	err := json.NewDecoder(w.Body).Decode(&resp)
 	if err != nil || resp["token"] == "" {
 		t.Errorf("expected a token but got: %v", w.Body.String())
-	}
-}
-
-func TestProtectedHandler(t *testing.T) {
-	// Создаем токен для тестового пользователя
-	tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
-	claims := map[string]interface{}{
-		"user_id": "test@example.com",
-		"exp":     time.Now().Add(time.Hour * 1).Unix(),
-	}
-	_, tokenString, _ := tokenAuth.Encode(claims)
-
-	// Создаем HTTP-запрос с токеном в заголовке
-	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
-	req.Header.Set("Authorization", "Bearer "+tokenString)
-
-	// Создаем ResponseRecorder для записи ответа
-	w := httptest.NewRecorder()
-
-	// Применяем JWT-аутентификацию через миддлвар
-	jwtMiddleware := jwtauth.Verifier(tokenAuth)
-	jwtMiddleware(http.HandlerFunc(protectedHandler)).ServeHTTP(w, req)
-
-	// Проверяем код статуса
-	if status := w.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	// Проверяем тело ответа
-	expected := `Защищённый контент для пользователя: test@example.com`
-	if w.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v", w.Body.String(), expected)
 	}
 }

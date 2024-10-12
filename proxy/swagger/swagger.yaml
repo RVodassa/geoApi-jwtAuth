@@ -11,7 +11,9 @@ schemes:
 paths:
   /address/geocode:
     post:
-      summary: "Геокодирование"
+      summary: "Геокодирование - защищенный ресурс"
+      security:
+      - bearerAuth: []
       parameters:
         - name: "body"
           in: "body"
@@ -27,14 +29,24 @@ paths:
           description: "Неверный запрос"
           schema:
             $ref: "#/definitions/ErrorResponse"
+        401:
+          description: "Неавторизован"  # токен отсутствует или неверен
+          schema:
+            $ref: "#/definitions/ErrorResponse"  # Ссылка на описание структуры ошибки
+        403:
+          description: "Доступ запрещён"  # токен не имеет прав на доступ к ресурсу
+          schema:
+            $ref: "#/definitions/ErrorResponse"  # Ссылка на описание структуры ошибки
         500:
           description: "Сервер недоступен"
           schema:
-            $ref: "#/definitions/ErrorResponse"    
+            $ref: "#/definitions/ErrorResponse" 
 
   /address/search:
     post:
-      summary: "Поиск адресов"
+      summary: "Поиск адресов - защищенный ресурс"
+      security:
+      - bearerAuth: []
       parameters:
         - name: "body"
           in: "body"
@@ -50,11 +62,18 @@ paths:
           description: "Неверный запрос"
           schema:
             $ref: "#/definitions/ErrorResponse"
+        401:
+          description: "Неавторизован"  # токен отсутствует или неверен
+          schema:
+            $ref: "#/definitions/ErrorResponse"  
+        403:
+          description: "Доступ запрещён"  
+          schema:
+            $ref: "#/definitions/ErrorResponse"  
         500:
           description: "Сервер недоступен"
           schema:
             $ref: "#/definitions/ErrorResponse"
-
   /register:
     post:
       summary: "Регистрация нового пользователя"
@@ -100,25 +119,6 @@ paths:
           description: "Ошибка на сервере"
           schema:
             $ref: "#/definitions/ErrorResponse"
-
-/protected:
-  get:
-    summary: "Доступ к защищённому ресурсу"
-    security:
-      - bearerAuth: []  # Указывает, что для доступа к этому эндпоинту требуется аутентификация с использованием Bearer токена
-    responses:
-      200:
-        description: "Доступ разрешён"  # Описание успешного ответа
-        schema:
-          $ref: "#/definitions/ProtectedResponse"  # Ссылка на описание структуры ответа
-      401:
-        description: "Неавторизован"  # Описание ответа, когда токен отсутствует или неверен
-        schema:
-          $ref: "#/definitions/ErrorResponse"  # Ссылка на описание структуры ошибки
-      403:
-        description: "Доступ запрещён"  # Описание ответа, когда токен не имеет прав на доступ к ресурсу
-        schema:
-          $ref: "#/definitions/ErrorResponse"  # Ссылка на описание структуры ошибки
 
 
 definitions:
@@ -182,12 +182,6 @@ definitions:
         type: "string"
         example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
-  ProtectedResponse:
-    type: "object"
-    properties:
-      message:
-        type: "string"
-        example: "Защищённый контент для пользователя: user@example.com"
 
   MessageResponse:
     type: "object"

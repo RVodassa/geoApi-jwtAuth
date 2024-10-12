@@ -59,12 +59,12 @@ func (s *Server) Start() error {
 		r.Use(jwtauth.Verifier(tokenAuth))
 		// Передаём tokenAuth в Authenticator
 		r.Use(jwtauth.Authenticator(tokenAuth))
-		r.Get("/api/protected", protectedHandler)
+		r.Post("/api/address/geocode", HandleGeocode)
+		r.Post("/api/address/search", HandleSearch)
 	})
 
 	r.Get("/test", HandleTest)
-	r.Post("/api/address/geocode", HandleGeocode)
-	r.Post("/api/address/search", HandleSearch)
+
 	// Создание инстанса реверс-прокси
 	rp := NewReverseProxy("localhost", "8080")
 	r.Mount("/api/", rp.ReverseProxy())

@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -85,18 +84,4 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Возвращаем токен клиенту
 	render.JSON(w, r, map[string]string{"token": tokenString})
-}
-
-// protectedHandler — защищенный маршрут
-func protectedHandler(w http.ResponseWriter, r *http.Request) {
-	_, claims, _ := jwtauth.FromContext(r.Context())
-
-	// Проверяем, что claims содержит user_id
-	userID, ok := claims["user_id"].(string)
-	if !ok || userID == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	fmt.Fprintf(w, "Защищённый контент для пользователя: %v", userID)
 }

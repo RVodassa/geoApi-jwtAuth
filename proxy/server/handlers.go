@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/go-chi/jwtauth/v5"
 )
 
 type SearchResponse struct {
@@ -12,6 +14,14 @@ type SearchResponse struct {
 }
 
 func HandleGeocode(w http.ResponseWriter, r *http.Request) {
+	_, claims, _ := jwtauth.FromContext(r.Context())
+	// Проверяем, что claims содержит user_id
+	userID, ok := claims["user_id"].(string)
+	if !ok || userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	apiKey, secretKey := os.Getenv("ApiKey"), os.Getenv("SecretKey")
 	geoService := NewGeoService(apiKey, secretKey)
 
@@ -57,6 +67,14 @@ func HandleGeocode(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleSearch(w http.ResponseWriter, r *http.Request) {
+	_, claims, _ := jwtauth.FromContext(r.Context())
+	// Проверяем, что claims содержит user_id
+	userID, ok := claims["user_id"].(string)
+	if !ok || userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	apiKey, secretKey := os.Getenv("ApiKey"), os.Getenv("SecretKey")
 	geoService := NewGeoService(apiKey, secretKey)
 
